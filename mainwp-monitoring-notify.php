@@ -39,15 +39,6 @@ class MainWP_Monitoring_Notify_Extension
 		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
 		add_action('wp_ajax_' . $this->update_action, [$this, 'update_callback']);
 		add_action('wp_ajax_nopriv_' . $this->update_action, [$this, 'update_callback']);
-		// add_action('wp_head',  [$this, 'test']);
-	}
-
-
-	public function test()
-	{
-		$websites = MainWP\Dashboard\MainWP_DB::instance()->query(MainWP\Dashboard\MainWP_DB::instance()->get_sql_websites_for_current_user());
-		// $offlineSites = array_filter($websites, [$this, "filter_offline_site_callback"]);
-		var_dump($websites);
 	}
 
 	static function get_instance()
@@ -86,6 +77,9 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function admin_init()
 	{
+		$page = isset($_GET['page']) ? $_GET['page'] : '';
+		if (stripos($page, "Mainwp-Monitoring-Notify") === false) return;
+
 		wp_enqueue_script($this->plugin_handle, $this->plugin_url . 'assets/js/main.js', array('jquery'), $this->ver);
 
 		$data = [
@@ -182,7 +176,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
 	public function settings()
 	{
 		do_action('mainwp_pageheader_extensions', __FILE__);
-		MainWP_Monitoring_Notify_Settings::render_form();
+		MainWP_Monitoring_Notify_Settings::render_tabs();
 		do_action('mainwp_pagefooter_extensions', __FILE__);
 	}
 
