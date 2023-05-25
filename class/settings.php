@@ -93,6 +93,11 @@ class MainWP_Monitoring_Notify_Settings
 				'value' =>  '<a href="#" target="_black"><button class="ui blue button"><i class="coffee icon" style="color:#fff !important;"></i> 請我喝杯咖啡</button>
 			</a>'
 			],
+			[
+				'key' => 'Bug 回報',
+				'value' =>  '<a href="https://github.com/j7-dev/MainWP-Monitoring-Notify/issues" target="_black"><button class="ui green button"><i class="bug icon" style="color:#fff !important;"></i> GitHub Issues</button>
+			</a>'
+			],
 		]
 	?>
 		<div class="ui grid field">
