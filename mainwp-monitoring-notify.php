@@ -12,19 +12,33 @@
 
 class MainWP_Monitoring_Notify_Extension
 {
+	public static $instance = null;
 	public static $childKey = false;
-	public static $token = '3qXsuC4zQ7V0BdlamXpDBHZeeZ8AQOBLQdEgoOtoHwx';
+	public $line_token;
 	public $plugin_handle = 'mainwp-monitoring-notify-extension';
+	public $update_action = 'mainwp_monitoring_notify_update';
 	public $plugin_slug;
-	protected $plugin_url;
+	public $plugin_url;
+	public static $ver;
 
+	//3qXsuC4zQ7V0BdlamXpDBHZeeZ8AQOBLQdEgoOtoHwx
 	public function __construct()
 	{
+
 		require __DIR__ . '/vendor/autoload.php';
 
+		$plugin_data = get_plugin_data(__FILE__);
+		$this->ver = $plugin_data['Version'];
 		$this->plugin_url  = plugin_dir_url(__FILE__);
 		$this->plugin_slug = plugin_basename(__FILE__);
+
+		$this->line_token = get_option('mainwp_monitoring_notify_line_token', '');
+
+
+		add_action('admin_init', array(&$this, 'admin_init'));
 		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
+		add_action('wp_ajax_' . $this->update_action, [$this, 'update_callback']);
+		add_action('wp_ajax_nopriv_' . $this->update_action, [$this, 'update_callback']);
 		// add_action('wp_head',  [$this, 'test']);
 	}
 
@@ -34,6 +48,16 @@ class MainWP_Monitoring_Notify_Extension
 		$websites = MainWP\Dashboard\MainWP_DB::instance()->query(MainWP\Dashboard\MainWP_DB::instance()->get_sql_websites_for_current_user());
 		// $offlineSites = array_filter($websites, [$this, "filter_offline_site_callback"]);
 		var_dump($websites);
+	}
+
+	static function get_instance()
+	{
+
+		if (null == self::$instance) {
+			self::$instance = new MainWP_Monitoring_Notify_Extension();
+		}
+
+		return self::$instance;
 	}
 
 
@@ -54,7 +78,7 @@ class MainWP_Monitoring_Notify_Extension
 			$msg .= $site->url . "\n\n";
 		}
 
-		$ln = new KS\Line\LineNotify(self::$token);
+		$ln = new KS\Line\LineNotify(self::$line_token);
 		$ln->send($msg);
 	}
 
@@ -62,7 +86,32 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function admin_init()
 	{
-		wp_enqueue_script('mainwp-monitoring-notify-extension', $this->plugin_url . 'js/mainwp-monitoring-notify.js', array(), '1.2');
+		wp_enqueue_script($this->plugin_handle, $this->plugin_url . 'assets/js/main.js', array('jquery'), $this->ver);
+
+		$data = [
+			'ajax_url' => admin_url('admin-ajax.php'),
+			'nonce' => wp_create_nonce($this->plugin_handle),
+			'action' => $this->update_action
+		];
+		wp_localize_script($this->plugin_handle, 'info', $data);
+	}
+
+	public function update_callback()
+	{
+		check_ajax_referer($this->plugin_handle, 'nonce');
+		$mainwp_monitoring_notify_line_token = $_POST['mainwp_monitoring_notify_line_token'];
+		if (!empty($mainwp_monitoring_notify_line_token)) {
+			update_option('mainwp_monitoring_notify_line_token', $mainwp_monitoring_notify_line_token);
+		}
+
+		$res = array(
+			'status' => 'success',
+			'message' => '保存成功',
+		);
+
+		wp_send_json($res);
+
+		die();
 	}
 }
 
@@ -77,14 +126,14 @@ class MainWP_Monitoring_Notify_Extension_Activator
 	protected $childFile;
 	protected $plugin_handle = 'mainwp-monitoring-notify-extension';
 	protected $product_id = 'MainWP Monitoring Notify Extension';
-	protected $software_version = '4.1.3';
 
 	public function __construct()
 	{
+		$this->includes();
 
 		$this->childFile = __FILE__;
 
-		$this->includes();
+
 		register_activation_hook(__FILE__, array($this, 'activate'));
 		register_deactivation_hook(__FILE__, array($this, 'deactivate'));
 
@@ -159,7 +208,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
 	{
 		$options = array(
 			'product_id'       => $this->product_id,
-			'software_version' => $this->software_version,
+			'software_version' => MainWP_Monitoring_Notify_Extension::$ver,
 		);
 		do_action('mainwp_activate_extension', $this->plugin_handle, $options);
 	}
