@@ -61,7 +61,48 @@ class MainWP_Monitoring_Notify_Settings
 				'
 			],
 		];
-		self::renderQA($questions);
+
+		$records = [
+			[
+				'key' => '套件名稱',
+				'value' => 'MainWP Monitoring Notify Extension'
+			],
+			[
+				'key' => '版本號',
+				'value' =>  MainWP_Monitoring_Notify_Extension::get_instance()->ver
+			],
+			[
+				'key' => '開發者',
+				'value' =>  '<a href="https://github.com/j7-dev" target="_black">J7 <i class="github icon"></i></a> '
+			],
+			[
+				'key' => '程式碼倉庫',
+				'value' =>  '<a href="https://github.com/j7-dev/MainWP-Monitoring-Notify" target="_black"><div class="ui labeled button" tabindex="0">
+				<div class="ui basic blue button">
+				<i class="github icon"></i> GitHub
+				</div>
+				<span class="ui basic left pointing blue label">
+				⭐
+				</span>
+			</div></a><span style="margin-left:2rem;">您的星星是給開發者的肯定</span>'
+			],
+			[
+				'key' => '開源贊助',
+				'value' =>  '<a href="#" target="_black"><button class="ui blue button"><i class="coffee icon" style="color:#fff !important;"></i> 請我喝杯咖啡</button>
+			</a>'
+			],
+		]
+	?>
+		<div class="ui grid field">
+			<div class="eight wide column">
+				<?php self::renderQA($questions); ?>
+			</div>
+			<div class="eight wide column">
+				<?php self::renderTable($records); ?>
+			</div>
+		</div>
+	<?php
+
 	}
 
 	public static function render_form()
@@ -110,53 +151,61 @@ class MainWP_Monitoring_Notify_Settings
 				<input type="text" name="mainwp_monitoring_notify_line_token" id="mainwp_monitoring_notify_line_token" value="<?= $line_token ?>" />
 			</div>
 		</div>
-	<?php
-		self::renderHelper($helpers);
-	}
-
-	public static function renderHelper($helpers)
-	{
-	?>
 		<div class="ui grid field">
 			<label class="six wide column middle aligned"></label>
 			<div class="ten wide column">
-				<ol>
-					<?php foreach ($helpers as $key => $helper) : ?>
-						<li style="color: #666;">
-							<p><?= $helper['content'] ?></p>
-							<?php if (!empty($helper['image'])) : ?>
-								<p><a href="<?= $helper['image'] ?>" target="_blank"><img style="width:10rem;" src="<?= $helper['image'] ?>" /></a></p>
-							<?php endif; ?>
-						</li>
-					<?php endforeach; ?>
-				</ol>
+				<?php self::renderList($helpers); ?>
 			</div>
 		</div>
-
 	<?php
+
+	}
+
+	public static function renderList($helpers)
+	{
+	?>
+		<ol>
+			<?php foreach ($helpers as $key => $helper) : ?>
+				<li style="color: #666;">
+					<p><?= $helper['content'] ?></p>
+					<?php if (!empty($helper['image'])) : ?>
+						<p><a href="<?= $helper['image'] ?>" target="_blank"><img style="width:10rem;" src="<?= $helper['image'] ?>" /></a></p>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ol>
+		<?php
 	}
 
 	public static function renderQA($questions)
 	{
-	?>
-		<div class="ui grid field">
+		foreach ($questions as $key => $question) : ?>
+			<div class="ui icon info message">
 
-			<div class="eight wide column">
-
-				<?php foreach ($questions as $key => $question) : ?>
-					<div class="ui icon info message">
-
-						<div class="content">
-							<div class="header" style="margin-bottom:2rem;">
-								<?= $question['q'] ?>
-							</div>
-							<p><?= $question['a'] ?></p>
-						</div>
+				<div class="content">
+					<div class="header" style="margin-bottom:2rem;">
+						<?= $question['q'] ?>
 					</div>
-				<?php endforeach; ?>
-
+					<p><?= $question['a'] ?></p>
+				</div>
 			</div>
-		</div>
+		<?php endforeach;
+	}
+
+	public static function renderTable($records)
+	{
+		?>
+		<table class="ui celled table">
+			<tbody>
+
+				<?php foreach ($records as $record) : ?>
+					<tr>
+						<td data-label="key"><?= $record['key'] ?></td>
+						<td data-label="value"><?= $record['value'] ?></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
 
 <?php
 	}
