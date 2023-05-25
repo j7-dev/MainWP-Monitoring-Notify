@@ -1,0 +1,18 @@
+{
+    "name": "j7/mainwp-monitoring-notify",
+    "description": "The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.",
+    "require": {
+        "kittinan/php-line-notify": "^0.5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "J7\\MainwpMonitoringNotify\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "J7",
+            "email": "j7.dev.gg@outlook.com"
+        }
+    ]
+}
