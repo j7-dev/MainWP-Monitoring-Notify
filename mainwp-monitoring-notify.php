@@ -14,14 +14,14 @@ require __DIR__ . '/vendor/autoload.php';
 class MainWP_Monitoring_Notify_Extension
 {
 	public static $childKey = false;
-	public $token = '3qXsuC4zQ7V0BdlamXpDBHZeeZ8AQOBLQdEgoOtoHwx';
+	public static $token = '3qXsuC4zQ7V0BdlamXpDBHZeeZ8AQOBLQdEgoOtoHwx';
 
 
 	public function __construct()
 	{
 		add_action('init', [$this, 'initialize']);
 		add_filter('mainwp-getextensions', [$this, 'get_this_extension']);
-		add_action('mainwp_after_notice_sites_uptime_monitoring_admin', [$this, 'handle_offline_site']);
+		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
 		// add_action('wp_head',  [$this, 'test']);
 	}
 
@@ -63,23 +63,22 @@ class MainWP_Monitoring_Notify_Extension
 		do_action('mainwp-pagefooter-extensions', __FILE__);
 	}
 
-	public function handle_offline_site($websites)
+	public function handle_offline_site($site)
 	{
-		$offlineSites = array_filter($websites, [$this, "filter_offline_site_callback"]);
+
+
 		$msg = '';
-		if (empty($offlineSites)) {
-			$msg .= "✅ 檢查所有網站都正常運作中\n";
+		if ($site->http_response_code == "200") {
+			$msg .= "\n✅ 檢查所有網站都正常運作中\n";
 		} else {
-			foreach ($offlineSites as $site) {
 				$code = $site->http_response_code;
 				$code_string = MainWP\Dashboard\MainWP_Utility::get_http_codes($code);
 				if (!empty($code_string)) {
 					$code .= ' - ' . $code_string;
 				}
-				$msg .= "⚠️ 偵測到網站異常" . $site->name  . '  🔴' . $code  . "\n";
+				$msg .= "\n⚠️ 偵測到網站異常" . $site->name  . '  🔴' . $code  . "\n";
 				$msg .= "請確認並聯繫網站管理員\n";
 				$msg .= $site->url . "\n\n";
-			}
 		}
 
 		$ln = new KS\Line\LineNotify(self::$token);
@@ -88,7 +87,8 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function filter_offline_site_callback($website)
 	{
-		return $website->http_response_code !== "200";
+		//return $website->http_response_code !== "200";
+		return true;
 	}
 
 
