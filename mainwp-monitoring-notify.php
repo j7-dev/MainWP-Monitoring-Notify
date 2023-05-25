@@ -93,7 +93,7 @@ class MainWP_Monitoring_Notify_Extension
 	public function update_callback()
 	{
 		check_ajax_referer($this->plugin_handle, 'nonce');
-		$mainwp_monitoring_notify_line_token = $_POST['mainwp_monitoring_notify_line_token'];
+		$mainwp_monitoring_notify_line_token = sanitize_text_field($_POST['mainwp_monitoring_notify_line_token']);
 		if (!empty($mainwp_monitoring_notify_line_token)) {
 			update_option('mainwp_monitoring_notify_line_token', $mainwp_monitoring_notify_line_token);
 		}
