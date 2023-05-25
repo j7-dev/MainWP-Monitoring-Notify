@@ -12,10 +12,12 @@ class MainWP_Monitoring_Notify_Settings
 			'monitoring-notify-settings' => [
 				'label' => 'Settings',
 				'callback' => 'render_form',
+				'icon' => 'cog',
 			],
 			'monitoring-notify-about' => [
 				'label' => 'About',
 				'callback' => 'render_about',
+				'icon' => 'exclamation circle'
 			]
 		]
 
@@ -25,7 +27,7 @@ class MainWP_Monitoring_Notify_Settings
 			<?php foreach ($tabs as $key => $tab) :
 				$active = $key === 'monitoring-notify-settings' ? 'active' : '';
 			?>
-				<a href="#" class="item <?= $active ?>" data-tab="<?= $key ?>"><i class="cog icon"></i> <?= $tab['label'] ?></a>
+				<a href="#" class="item <?= $active ?>" data-tab="<?= $key ?>"><i class="<?= $tab['icon'] ?> icon"></i> <?= $tab['label'] ?></a>
 			<?php endforeach; ?>
 		</div>
 
