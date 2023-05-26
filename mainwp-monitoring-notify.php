@@ -26,9 +26,12 @@ class MainWP_Monitoring_Notify_Extension
 	{
 
 		require __DIR__ . '/vendor/autoload.php';
-
-		//$plugin_data = get_plugin_data(__FILE__);
-		$this->ver = '1.0.0';
+		
+		if ( ! function_exists( 'get_plugins' ) ) {
+        		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    		}
+		$plugin_data = get_plugin_data(__FILE__);
+		$this->ver = $plugin_data['Version'];
 		$this->plugin_url  = plugin_dir_url(__FILE__);
 		$this->plugin_slug = plugin_basename(__FILE__);
 
