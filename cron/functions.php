@@ -30,8 +30,19 @@ function get_site_urls()
 	return $site_urls;
 }
 
+function get_token()
+{
+	if (class_exists('MainWP_Monitoring_Notify_Extension')) {
+		$token = MainWP_Monitoring_Notify_Extension::get_instance()->line_token;
+	} else {
+		$token = get_option('mainwp_monitoring_notify_line_token', '');
+	}
+
+	return $token;
+}
+
 
 // $url = "https://test.yc-tech.co/";
 // $status_code = get_http_status_code($url);
 
-var_dump(get_site_urls());
+var_dump(get_token());
