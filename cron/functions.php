@@ -1,6 +1,6 @@
 <?php
 
-function get_http_status_code($url)
+function get_http_status_code(string $url)
 {
 	$headers = get_headers($url);
 	$status_line = $headers[0];
@@ -19,9 +19,8 @@ function get_sites()
 	return $results;
 }
 
-function get_site_urls()
+function get_site_urls(array $sites)
 {
-	$sites = get_sites();
 	$site_urls = [];
 	foreach ($sites as $site) {
 		$site_urls[] = $site->url;
@@ -41,8 +40,34 @@ function get_token()
 	return $token;
 }
 
+function get_message(string $http_response_code, $site)
+{
+	if ($http_response_code === '200') {
+		$msg = "\n\n✅ 網站 {$site->name} 正常運作中\n";
+	} else {
+		$msg = "\n\n⚠️ 偵測到網站 {$site->name} 異常 🔴{$http_response_code}\n
+		請盡速聯繫網站管理員\n
+		";
+	}
+	return $msg;
+}
+
+function exec_crontab_task()
+{
+	if (!class_exists('KS\Line\LineNotify')) return 'KS\Line\LineNotify is not enabled';
+	$sites = get_sites();
+	$msg = '';
+	foreach ($sites as $site) {
+		$http_status_code = get_http_status_code($site->url);
+		$msg .= get_message($http_status_code, $site);
+	}
+	$token = get_token();
+	$ln = new KS\Line\LineNotify($token);
+	$ln->send($msg);
+}
 
 // $url = "https://test.yc-tech.co/";
 // $status_code = get_http_status_code($url);
-
-var_dump(get_token());
+// $token = get_token();
+// $ln = new KS\Line\LineNotify($token);
+// $ln->send('[TEST] crontab 直接發送訊息');
