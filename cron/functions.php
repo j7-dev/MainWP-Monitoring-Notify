@@ -65,8 +65,9 @@ function exec_crontab_task()
 		$msg .= get_message($http_status_code, $site);
 		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
+	$only_notify_when_site_offline = true;
+	if ($is_all_site_ok && $only_notify_when_site_offline) return;
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
 	$ln->send($msg);
-	// return $is_all_site_ok;
 }
