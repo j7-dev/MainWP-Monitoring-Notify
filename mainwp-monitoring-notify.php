@@ -27,8 +27,8 @@ class MainWP_Monitoring_Notify_Extension
 
 		require __DIR__ . '/vendor/autoload.php';
 
-		$plugin_data = get_plugin_data(__FILE__);
-		$this->ver = $plugin_data['Version'];
+		//$plugin_data = get_plugin_data(__FILE__);
+		$this->ver = '1.0.0';
 		$this->plugin_url  = plugin_dir_url(__FILE__);
 		$this->plugin_slug = plugin_basename(__FILE__);
 
