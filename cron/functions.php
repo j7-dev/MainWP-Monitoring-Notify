@@ -59,11 +59,14 @@ function exec_crontab_task()
 	if (!class_exists('KS\Line\LineNotify')) return 'KS\Line\LineNotify is not enabled';
 	$sites = get_sites();
 	$msg = "\n\n";
+	$is_all_site_ok = true;
 	foreach ($sites as $site) {
 		$http_status_code = get_http_status_code($site->url);
 		$msg .= get_message($http_status_code, $site);
+		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
 	$ln->send($msg);
+	// return $is_all_site_ok;
 }
