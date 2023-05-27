@@ -1,5 +1,4 @@
 <?php
-
 class MainWP_Monitoring_Notify_Settings
 {
 	public function __construct()
@@ -13,6 +12,11 @@ class MainWP_Monitoring_Notify_Settings
 				'label' => 'Settings',
 				'callback' => 'render_form',
 				'icon' => 'cog',
+			],
+			'monitoring-notify-crontab' => [
+				'label' => 'Crontab',
+				'callback' => 'render_crontab',
+				'icon' => 'stopwatch',
 			],
 			'monitoring-notify-about' => [
 				'label' => 'About',
@@ -102,14 +106,71 @@ class MainWP_Monitoring_Notify_Settings
 	?>
 		<div class="ui grid field">
 			<div class="eight wide column">
-				<?php self::renderQA($questions); ?>
-			</div>
-			<div class="eight wide column">
 				<?php self::renderTable($records); ?>
 			</div>
 		</div>
 	<?php
+	}
 
+	public static function render_crontab()
+	{
+		$base_url = MainWP_Monitoring_Notify_Extension::get_instance()->plugin_url;
+		$monitoring_sites_url = add_query_arg(array(
+			'page' => 'MonitoringSites',
+		), admin_url('admin.php'));
+		$questions = [
+			[
+				'q' => '多久檢查一次?',
+				'a' => "看你 <code><a href='{$monitoring_sites_url}' target='_blank'>Sites > Monitoring</a></code> ，中的設置是多久，最短可以 <code>每 5 分鐘</code> 檢查一次"
+			],
+			[
+				'q' => '運作原理是什麼?',
+				'a' => '是使用 <code>WP CRON</code> 搭配 <code>MainWP</code> 本身的 hook 做成<br /><br />
+				⚠️ <code>WP CRON</code> 必須是<b style="color: var(--red-color)">有人造訪網站時才會觸發</b>，如果您的網站流量本身並不高，推薦使用 主機本身提供的 <code>crontab</code> 來實現，詳細可參考 <a href="https://kb.mainwp.com/disable-wp-cron/" target="_blank">官方文章</a> 或 <a href="https://studiofreya.com/2016/01/10/how-to-trigger-wp-cron-from-crontab-in-wordpress/" target="_blank">這篇文章</a><br /><br />
+				也因為如此，斷線的檢查推波通知 <b style="color: var(--red-color)">並非準確的 5 分鐘</b>
+				'
+			],
+			[
+				'q' => '[進階] 設定準確的定時任務 - 使用 crontab',
+				'a' => "如果你的主機商允許你設定 <code>crontab</code> 那麼，你可以透過 crontab 實現準確的定時任務，也可以參考此 <a href='https://linuxhandbook.com/crontab/' target='_blank'>crontab 教學</a><br /><br />
+				<ol>
+					<li>
+						<p>取消這個外掛的 <code>WP CRON</code> </p>
+						<p>在你主題底下的 functions.php 輸入 </p>
+						<p>
+						<code>
+						add_filter( 'mainwp_monitoring_notify_wp_cron_enabled' , '__return_false', 100, 1 );
+						</code>
+						</p><br /><br />
+					</li>
+					<li>
+						<p>ssh 伺服器後輸入 <code>crontab -e</code> ，開啟 <code>crontab</code> 設定</p>
+						<p>⚠️ 請確保你的伺服器上可以執行 <code>php</code> 指令</p>
+						<p>⚠️ 下方的 <code>{{PATH}}</code> 請自行替換此網站的檔案路徑，例: <code>/var/www/html/MY_SITE</code></p>
+						<p>例: 每分鐘執行一次:</p>
+						<p><code>* * * * * php <span style='color: var(--red-color)'>{{PATH}}</span>/wp-content/plugins/mainwp-monitoring-notify/cron/exec.php > /dev/null 2>&1</code></p>
+						<p>例: 每 <span style='color: var(--red-color)'>5</span> 分鐘執行一次:</p>
+						<p><code>*<span style='color: var(--red-color)'>/5</span> * * * * php <span style='color: var(--red-color)'>{{PATH}}</span>/wp-content/plugins/mainwp-monitoring-notify/cron/exec.php > /dev/null 2>&1</code></p><br /><br />
+					</li>
+
+					<li>
+						<p>範例: </p>
+						<p><a href='{$base_url}/assets/image/crontab.png' target='_blank'><img style='width:10rem;' src='{$base_url}/assets/image/crontab.png' /></a></p>
+					</li>
+				</ol>
+				"
+			]
+		];
+
+
+	?>
+		<div class="ui grid field">
+			<div class="wide column">
+				<?php self::renderQA($questions); ?>
+			</div>
+
+		</div>
+	<?php
 	}
 
 	public static function render_form()
@@ -142,15 +203,15 @@ class MainWP_Monitoring_Notify_Settings
 			],
 			[
 				'content' => '點擊 <code>Generate token</code> 然後選擇想要通知的聊天室',
-				'image' => $base_url . '/assets/image/choose_chatroom.png'
+				'image' =>  "{$base_url}/assets/image/choose_chatroom.png"
 			],
 			[
 				'content' => '複製 <code>token</code> 然後貼到這邊保存',
-				'image' => $base_url . '/assets/image/get_token.png'
+				'image' => "{$base_url}/assets/image/get_token.png"
 			],
 			[
 				'content' => '最後，邀請 LINE Notify 到你<code>第二步選擇的聊天室</code>就完成了🎉🎉🎉',
-				'image' => $base_url . '/assets/image/invite.png'
+				'image' => "{$base_url}/assets/image/invite.png"
 			],
 		];
 		$modal_props = [

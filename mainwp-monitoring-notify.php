@@ -39,8 +39,6 @@ class MainWP_Monitoring_Notify_Extension
 		$this->line_token = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
 		$this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
 
-
-
 		add_action('admin_init', array(&$this, 'admin_init'));
 		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
 		add_action('wp_ajax_' . $this->update_action, [$this, 'update_callback']);
@@ -60,6 +58,11 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function handle_offline_site($site)
 	{
+		global $mainWPMonitoringNotifyExtensionActivator;
+		$wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
+
+
+		if (!$wp_cron_enabled) return;
 
 		$msg = '';
 		if ($site->http_response_code == "200") {
@@ -126,6 +129,7 @@ class MainWP_Monitoring_Notify_Extension
 class MainWP_Monitoring_Notify_Extension_Activator
 {
 	protected $mainwpMainActivated = false;
+	public $wp_cron_enabled = true;
 	protected $childEnabled = false;
 	protected $childKey = false;
 	protected $childFile;
@@ -144,6 +148,8 @@ class MainWP_Monitoring_Notify_Extension_Activator
 
 		add_filter('mainwp_getextensions', array(&$this, 'get_this_extension'));
 		$this->mainwpMainActivated = apply_filters('mainwp_activated_check', false);
+
+
 
 		if (false !== $this->mainwpMainActivated) {
 			$this->activate_this_plugin();
