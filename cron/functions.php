@@ -67,7 +67,10 @@ function get_message(string $http_response_code, $site)
 
 function exec_crontab_task()
 {
-	if (!class_exists('KS\Line\LineNotify')) return 'KS\Line\LineNotify is not enabled';
+	if (!class_exists('KS\Line\LineNotify')) {
+		echo 'KS\Line\LineNotify is not enabled';
+		return;
+	}
 	$sites = get_sites();
 	$msg = "\n\n";
 	$is_all_site_ok = true;
@@ -76,8 +79,13 @@ function exec_crontab_task()
 		$msg .= get_message($http_status_code, $site);
 		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
+
+
 	$only_notify_when_site_offline = get_only_notify_when_site_offline();
-	if ($is_all_site_ok && $only_notify_when_site_offline) return;
+	if ($is_all_site_ok && $only_notify_when_site_offline) {
+		echo 'All sites are online';
+		return;
+	}
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
 	$ln->send($msg);
