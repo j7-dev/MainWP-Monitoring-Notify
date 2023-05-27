@@ -23,6 +23,11 @@
       mainwp_monitoring_notify_line_token: $(
         "#mainwp_monitoring_notify_line_token"
       ).val(),
+      mainwp_monitoring_notify_only_notify_when_site_offline: $(
+        "#mainwp_monitoring_notify_only_notify_when_site_offline"
+      ).is(":checked")
+        ? 1
+        : 0,
     };
     $.post(info?.ajax_url, data, function (response) {
       saveBtn.removeClass("loading");

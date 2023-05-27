@@ -131,7 +131,9 @@ class MainWP_Monitoring_Notify_Settings
 
 	public static function render_fields()
 	{
+		$prefix = MainWP_Monitoring_Notify_Extension::$prefix;
 		$line_token = MainWP_Monitoring_Notify_Extension::get_instance()->line_token;
+		$only_notify_when_site_offline = MainWP_Monitoring_Notify_Extension::get_instance()->only_notify_when_site_offline;
 		$base_url = MainWP_Monitoring_Notify_Extension::get_instance()->plugin_url;
 		$helpers = [
 			[
@@ -151,19 +153,28 @@ class MainWP_Monitoring_Notify_Settings
 				'image' => $base_url . '/assets/image/invite.png'
 			],
 		];
+		$modal_props = [
+			'key' => 'tutorial',
+			'label' => '<i class="info circle icon"></i> 教學',
+			'title' => '如何申請 LINE Notify Token',
+			'content' => ['MainWP_Monitoring_Notify_Settings', 'renderList'],
+			'content_props' => $helpers
+		];
+
 	?>
 		<div class="ui grid field">
-			<label class="six wide column middle aligned"><?php _e('Line Notify Token', 'mainwp-monitoring-notify-extension'); ?></label>
-			<div class="ten wide column" data-tooltip="<?php esc_attr_e('Enter your Line notify token', 'mainwp-monitoring-notify-extension'); ?>" data-inverted="" data-position="top left">
-				<input type="text" name="mainwp_monitoring_notify_line_token" id="mainwp_monitoring_notify_line_token" value="<?= $line_token ?>" />
+			<label class="six wide column middle aligned"><?php _e('Line Notify Token', 'mainwp-monitoring-notify-extension'); ?><span style="margin-right:1rem;"></span><?php self::renderModal($modal_props) ?></label>
+			<div class="ten wide column">
+				<input type="text" name="<?= "{$prefix}line_token" ?>" id="<?= "{$prefix}line_token" ?>" value="<?= $line_token ?>" />
 			</div>
 		</div>
 		<div class="ui grid field">
-			<label class="six wide column middle aligned"></label>
+			<label class="six wide column middle aligned" data-tooltip="<?php esc_attr_e('Check this option to notify when site is offline only', 'mainwp-monitoring-notify-extension'); ?>" data-inverted="" data-position="top left"><?php _e('Only Notify When Site Offline', 'mainwp-monitoring-notify-extension'); ?></label>
 			<div class="ten wide column">
-				<?php self::renderList($helpers); ?>
+				<input type="checkbox" name="<?= "{$prefix}only_notify_when_site_offline" ?>" id="<?= "{$prefix}only_notify_when_site_offline" ?>" style="position: relative;top: 7px;" <?php checked($only_notify_when_site_offline); ?> /> <span>check this if you don't want to receive every notification</span>
 			</div>
 		</div>
+
 	<?php
 
 	}
@@ -199,9 +210,46 @@ class MainWP_Monitoring_Notify_Settings
 		<?php endforeach;
 	}
 
+	public static function renderModal($modal_props)
+	{
+		$default_modal_props = [
+			'key' => wp_unique_id(),
+			'label' => '開啟 Modal',
+			'title' => 'Modal Title',
+			'content' => [],
+			'content_props' => []
+		];
+		$modal_props = array_merge($default_modal_props, $modal_props);
+		?>
+		<button data-modal="<?= $modal_props['key'] ?>" class="mini ui blue button">
+			<?= $modal_props['label'] ?>
+		</button>
+		<div id="<?= $modal_props['key'] ?>" class="ui modal">
+			<i class="close icon"></i>
+			<div class="header">
+				<?= $modal_props['title'] ?>
+			</div>
+			<div class="content">
+				<?php call_user_func_array($modal_props['content'], [$modal_props['content_props']]) ?>
+			</div>
+		</div>
+
+		<script>
+			(function($) {
+				const btn = $('button[data-modal="<?= $modal_props['key'] ?>"]');
+				btn.click(function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					$('#<?= $modal_props['key'] ?>').modal('show');
+				})
+			})(jQuery)
+		</script>
+	<?php
+	}
+
 	public static function renderTable($records)
 	{
-		?>
+	?>
 		<table class="ui celled table">
 			<tbody>
 

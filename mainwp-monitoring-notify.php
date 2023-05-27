@@ -4,7 +4,7 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
@@ -12,30 +12,33 @@
 
 class MainWP_Monitoring_Notify_Extension
 {
+	public static $prefix = 'mainwp_monitoring_notify_';
 	public static $instance = null;
 	public static $childKey = false;
 	public $line_token;
+	public $only_notify_when_site_offline;
 	public $plugin_handle = 'mainwp-monitoring-notify-extension';
 	public $update_action = 'mainwp_monitoring_notify_update';
 	public $plugin_slug;
 	public $plugin_url;
 	public static $ver;
 
-	//3qXsuC4zQ7V0BdlamXpDBHZeeZ8AQOBLQdEgoOtoHwx
+
 	public function __construct()
 	{
 
 		require __DIR__ . '/vendor/autoload.php';
-		
-		if ( ! function_exists( 'get_plugins' ) ) {
-        		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-    		}
+
+		if (!function_exists('get_plugins')) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
 		$plugin_data = get_plugin_data(__FILE__);
 		$this->ver = $plugin_data['Version'];
 		$this->plugin_url  = plugin_dir_url(__FILE__);
 		$this->plugin_slug = plugin_basename(__FILE__);
+		$this->line_token = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
+		$this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
 
-		$this->line_token = get_option('mainwp_monitoring_notify_line_token', '');
 
 
 		add_action('admin_init', array(&$this, 'admin_init'));
@@ -95,15 +98,20 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function update_callback()
 	{
+		$prefix = MainWP_Monitoring_Notify_Extension::$prefix;
 		check_ajax_referer($this->plugin_handle, 'nonce');
-		$mainwp_monitoring_notify_line_token = sanitize_text_field($_POST['mainwp_monitoring_notify_line_token']);
-		if (!empty($mainwp_monitoring_notify_line_token)) {
-			update_option('mainwp_monitoring_notify_line_token', $mainwp_monitoring_notify_line_token);
+		$line_token = sanitize_text_field($_POST["{$prefix}line_token"]);
+		$only_notify_when_site_offline = sanitize_text_field($_POST["{$prefix}only_notify_when_site_offline"]);
+
+		if (!empty($line_token)) {
+			update_option("{$prefix}line_token", $line_token);
 		}
+		update_option("{$prefix}only_notify_when_site_offline", $only_notify_when_site_offline);
 
 		$res = array(
 			'status' => 'success',
 			'message' => '保存成功',
+			'data' => $only_notify_when_site_offline
 		);
 
 		wp_send_json($res);

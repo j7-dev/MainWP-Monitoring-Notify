@@ -40,6 +40,17 @@ function get_token()
 	return $token;
 }
 
+function get_only_notify_when_site_offline()
+{
+	if (class_exists('MainWP_Monitoring_Notify_Extension')) {
+		$only_notify_when_site_offline = MainWP_Monitoring_Notify_Extension::get_instance()->only_notify_when_site_offline;
+	} else {
+		$only_notify_when_site_offline = (bool) get_option('mainwp_monitoring_notify_only_notify_when_site_offline', '0');
+	}
+
+	return $only_notify_when_site_offline;
+}
+
 function get_message(string $http_response_code, $site)
 {
 	$msg = "";
@@ -65,7 +76,7 @@ function exec_crontab_task()
 		$msg .= get_message($http_status_code, $site);
 		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
-	$only_notify_when_site_offline = true;
+	$only_notify_when_site_offline = get_only_notify_when_site_offline();
 	if ($is_all_site_ok && $only_notify_when_site_offline) return;
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
