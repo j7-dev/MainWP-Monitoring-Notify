@@ -55,11 +55,11 @@ function get_message(string $http_response_code, $site)
 {
 	$msg = "";
 	if ($http_response_code === '200') {
-		$msg .= "✅ {$http_response_code} - 網站 {$site->name} 正常運作中\n";
+		$msg .= "✅ {$http_response_code} - 網站 {$site->url} 正常運作中\n";
 	} else {
 		$msg .= "\n";
-		$msg .= "🔴 {$http_response_code} - 網站 {$site->name} 狀態異常\n";
-		$msg .= "{$site->url} 請盡速確認或聯繫網站管理員\n";
+		$msg .= "🔴 {$http_response_code} - 網站 {$site->url} 狀態異常\n";
+		$msg .= "請盡速確認或聯繫網站管理員\n";
 		$msg .= "\n";
 	}
 	return $msg;

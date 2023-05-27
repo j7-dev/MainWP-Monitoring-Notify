@@ -4,15 +4,25 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
  */
 
+/**
+ * TODO
+ * [ ] 拆檔案
+ * [ ] namespace
+ * [ ] HTML檔案拆成TEMPLATE統一管理，ex: wp cron 版本的訊息統一
+ * [ ] 共用的 Utility
+ * [ ] Unit test PHP unit
+ * [ ] git ci
+ */
+
 class MainWP_Monitoring_Notify_Extension
 {
-	public static $prefix = 'mainwp_monitoring_notify_';
+	const PREFIX = 'mainwp_monitoring_notify_';
 	public static $instance = null;
 	public static $childKey = false;
 	public $line_token;
@@ -36,8 +46,8 @@ class MainWP_Monitoring_Notify_Extension
 		$this->ver = $plugin_data['Version'];
 		$this->plugin_url  = plugin_dir_url(__FILE__);
 		$this->plugin_slug = plugin_basename(__FILE__);
-		$this->line_token = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
-		$this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
+		$this->line_token = get_option(MainWP_Monitoring_Notify_Extension::PREFIX . "line_token", '');
+		$this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::PREFIX . "only_notify_when_site_offline", '0');
 
 		add_action('admin_init', array(&$this, 'admin_init'));
 		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
@@ -59,7 +69,7 @@ class MainWP_Monitoring_Notify_Extension
 	public function handle_offline_site($site)
 	{
 		global $mainWPMonitoringNotifyExtensionActivator;
-		$wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
+		$wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::PREFIX . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
 
 
 		if (!$wp_cron_enabled) return;
@@ -78,7 +88,7 @@ class MainWP_Monitoring_Notify_Extension
 			$msg .= $site->url . "\n\n";
 		}
 
-		$ln = new KS\Line\LineNotify(self::$line_token);
+		$ln = new KS\Line\LineNotify($this->line_token);
 		$ln->send($msg);
 	}
 
@@ -101,7 +111,7 @@ class MainWP_Monitoring_Notify_Extension
 
 	public function update_callback()
 	{
-		$prefix = MainWP_Monitoring_Notify_Extension::$prefix;
+		$prefix = MainWP_Monitoring_Notify_Extension::PREFIX;
 		check_ajax_referer($this->plugin_handle, 'nonce');
 		$line_token = sanitize_text_field($_POST["{$prefix}line_token"]);
 		$only_notify_when_site_offline = sanitize_text_field($_POST["{$prefix}only_notify_when_site_offline"]);
@@ -128,13 +138,13 @@ class MainWP_Monitoring_Notify_Extension
 
 class MainWP_Monitoring_Notify_Extension_Activator
 {
+	const PLUGIN_HANDLE = 'mainwp-monitoring-notify-extension';
+	const PRODUCT_ID = 'MainWP Monitoring Notify Extension';
 	protected $mainwpMainActivated = false;
 	public $wp_cron_enabled = true;
 	protected $childEnabled = false;
 	protected $childKey = false;
 	protected $childFile;
-	protected $plugin_handle = 'mainwp-monitoring-notify-extension';
-	protected $product_id = 'MainWP Monitoring Notify Extension';
 
 	public function __construct()
 	{
@@ -179,7 +189,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
 	{
 		$pArray[] = array(
 			'plugin'     				=> __FILE__,
-			'api'        				=> $this->plugin_handle,
+			'api'        				=> MainWP_Monitoring_Notify_Extension_Activator::PLUGIN_HANDLE,
 			'mainwp'     				=> true,
 			'callback'   				=> array(&$this, 'settings'),
 			'apiManager' 				=> true,
@@ -218,15 +228,15 @@ class MainWP_Monitoring_Notify_Extension_Activator
 	public function activate()
 	{
 		$options = array(
-			'product_id'       => $this->product_id,
+			'product_id'       => MainWP_Monitoring_Notify_Extension_Activator::PRODUCT_ID,
 			'software_version' => MainWP_Monitoring_Notify_Extension::$ver,
 		);
-		do_action('mainwp_activate_extension', $this->plugin_handle, $options);
+		do_action('mainwp_activate_extension', MainWP_Monitoring_Notify_Extension_Activator::PLUGIN_HANDLE, $options);
 	}
 
 	public function deactivate()
 	{
-		do_action('mainwp_deactivate_extension', $this->plugin_handle);
+		do_action('mainwp_deactivate_extension', MainWP_Monitoring_Notify_Extension_Activator::PLUGIN_HANDLE);
 	}
 }
 

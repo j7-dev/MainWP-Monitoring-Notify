@@ -192,7 +192,7 @@ class MainWP_Monitoring_Notify_Settings
 
 	public static function render_fields()
 	{
-		$prefix = MainWP_Monitoring_Notify_Extension::$prefix;
+		$prefix = MainWP_Monitoring_Notify_Extension::PREFIX;
 		$line_token = MainWP_Monitoring_Notify_Extension::get_instance()->line_token;
 		$only_notify_when_site_offline = MainWP_Monitoring_Notify_Extension::get_instance()->only_notify_when_site_offline;
 		$base_url = MainWP_Monitoring_Notify_Extension::get_instance()->plugin_url;
