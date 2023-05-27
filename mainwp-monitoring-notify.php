@@ -21,7 +21,7 @@ class MainWP_Monitoring_Notify_Extension
 	public $update_action = 'mainwp_monitoring_notify_update';
 	public $plugin_slug;
 	public $plugin_url;
-	public static $ver;
+	public static $ver = '';
 
 
 	public function __construct()
