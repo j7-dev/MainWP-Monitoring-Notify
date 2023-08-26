@@ -68,7 +68,7 @@ function get_message(string $http_response_code, $site)
 function get_service_status(string $service)
 {
 	// 执行 "service $service status" 命令并捕获输出
-	$service_status = shell_exec('service ' . $service . ' status');
+	$service_status = shell_exec('/usr/sbin/service ' . $service . ' status');
 
 	// 使用正则表达式从输出中提取Active状态
 	$pattern = '/Active: (\w+)/';
@@ -104,7 +104,6 @@ function get_system_info()
 	}
 
 	$msg = "";
-	$msg .= "\n\n\n";
 	$msg .= "目前 CPU 使用率：$cpuUsage%";
 	$msg .= "\n";
 	$msg .= "目前 RAM 使用率：$memoryUsage%";
@@ -127,6 +126,8 @@ function exec_crontab_task()
 	}
 	$sites = get_sites();
 	$msg = "\n\n";
+	$msg .= get_system_info();
+	$msg .= "\n\n";
 	$is_all_site_ok = true;
 	foreach ($sites as $site) {
 		$http_status_code = get_http_status_code($site->url);
@@ -134,14 +135,14 @@ function exec_crontab_task()
 		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
 
-	$msg .= get_system_info();
 
 
-	// $only_notify_when_site_offline = get_only_notify_when_site_offline();
-	// if ($is_all_site_ok && $only_notify_when_site_offline) {
-	// 	echo 'All sites are online';
-	// 	return;
-	// }
+
+	$only_notify_when_site_offline = get_only_notify_when_site_offline();
+	if ($is_all_site_ok && $only_notify_when_site_offline) {
+		echo 'All sites are online';
+		return;
+	}
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
 	$ln->send($msg);
