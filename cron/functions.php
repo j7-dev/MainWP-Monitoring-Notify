@@ -77,7 +77,8 @@ function get_service_status(string $service)
 	$msg = "";
 	if (isset($matches[1])) {
 		$activeStatus = $matches[1];
-		$msg .= $service . " 狀態：$activeStatus";
+		$activeLabel = ($activeStatus === 'active') ? '🟢 ' . $activeStatus : '🔴 ' . $activeStatus;
+		$msg .= $service . " 狀態：$activeLabel";
 	} else {
 		$msg .= "無法獲取 $service 狀態";
 	}
@@ -93,9 +94,9 @@ function get_system_info()
 	$loadAvg = sys_getloadavg();
 	function getLoadColor($load)
 	{
-		if ($load > 80) {
+		if ($load > 4) {
 			return '🔴 ' . $load;
-		} else if ($load > 50) {
+		} else if ($load > 2) {
 			return '🟡 ' . $load;
 		} else {
 			return '🟢 ' . $load;
@@ -104,9 +105,9 @@ function get_system_info()
 
 	$msg = "";
 	$msg .= "\n\n\n";
-	$msg .= "CPU 使用率：$cpuUsage%";
+	$msg .= "目前 CPU 使用率：$cpuUsage%";
 	$msg .= "\n";
-	$msg .= "RAM 使用率：$memoryUsage%";
+	$msg .= "目前 RAM 使用率：$memoryUsage%";
 	$msg .= "\n";
 	$msg .= "Load Average：" . getLoadColor($loadAvg[0]) . " " . getLoadColor($loadAvg[1]) . " " . getLoadColor($loadAvg[2]) . "\n";
 	$msg .= "\n";
@@ -136,11 +137,11 @@ function exec_crontab_task()
 	$msg .= get_system_info();
 
 
-	$only_notify_when_site_offline = get_only_notify_when_site_offline();
-	if ($is_all_site_ok && $only_notify_when_site_offline) {
-		echo 'All sites are online';
-		return;
-	}
+	// $only_notify_when_site_offline = get_only_notify_when_site_offline();
+	// if ($is_all_site_ok && $only_notify_when_site_offline) {
+	// 	echo 'All sites are online';
+	// 	return;
+	// }
 	$token = get_token();
 	$ln = new KS\Line\LineNotify($token);
 	$ln->send($msg);
