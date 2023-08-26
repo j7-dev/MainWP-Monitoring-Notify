@@ -133,6 +133,8 @@ function exec_crontab_task()
 		$is_all_site_ok = ($http_status_code === '200') ? $is_all_site_ok : false;
 	}
 
+	$msg .= get_system_info();
+
 
 	$only_notify_when_site_offline = get_only_notify_when_site_offline();
 	if ($is_all_site_ok && $only_notify_when_site_offline) {
