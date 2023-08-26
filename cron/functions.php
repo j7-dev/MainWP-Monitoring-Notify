@@ -65,6 +65,59 @@ function get_message(string $http_response_code, $site)
 	return $msg;
 }
 
+function get_service_status(string $service)
+{
+	// 执行 "service $service status" 命令并捕获输出
+	$service_status = shell_exec('service ' . $service . ' status');
+
+	// 使用正则表达式从输出中提取Active状态
+	$pattern = '/Active: (\w+)/';
+	preg_match($pattern, $service_status, $matches);
+
+	$msg = "";
+	if (isset($matches[1])) {
+		$activeStatus = $matches[1];
+		$msg .= $service . " 狀態：$activeStatus";
+	} else {
+		$msg .= "無法獲取 $service 狀態";
+	}
+	return $msg;
+}
+
+
+
+function get_system_info()
+{
+	$cpuUsage = exec("top -bn 1 | awk '/Cpu\(s\):/ {print $2 + $4}'");
+	$memoryUsage = exec("free | awk '/Mem:/ {print $3/$2 * 100.0}'");
+	$loadAvg = sys_getloadavg();
+	function getLoadColor($load)
+	{
+		if ($load > 80) {
+			return '🔴 ' . $load;
+		} else if ($load > 50) {
+			return '🟡 ' . $load;
+		} else {
+			return '🟢 ' . $load;
+		}
+	}
+
+	$msg = "";
+	$msg .= "\n\n\n";
+	$msg .= "CPU 使用率：$cpuUsage%";
+	$msg .= "\n";
+	$msg .= "RAM 使用率：$memoryUsage%";
+	$msg .= "\n";
+	$msg .= "Load Average：" . getLoadColor($loadAvg[0]) . " " . getLoadColor($loadAvg[1]) . " " . getLoadColor($loadAvg[2]) . "\n";
+	$msg .= "\n";
+	$msg .= get_service_status('nginx') . "\n";
+	$msg .= get_service_status('mysql') . "\n";
+	$msg .= get_service_status('php7.4-fpm') . "\n";
+	$msg .= get_service_status('php8.2-fpm') . "\n";
+
+	return $msg;
+}
+
 function exec_crontab_task()
 {
 	if (!class_exists('KS\Line\LineNotify')) {
