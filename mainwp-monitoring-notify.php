@@ -4,7 +4,7 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
@@ -12,222 +12,215 @@
 
 class MainWP_Monitoring_Notify_Extension
 {
-	public static $prefix = 'mainwp_monitoring_notify_';
-	public static $instance = null;
-	public static $childKey = false;
-	public $line_token;
-	public $only_notify_when_site_offline;
-	public $plugin_handle = 'mainwp-monitoring-notify-extension';
-	public $update_action = 'mainwp_monitoring_notify_update';
-	public $plugin_slug;
-	public $plugin_url;
-	public static $ver = '';
+    public static $prefix   = 'mainwp_monitoring_notify_';
+    public static $instance = null;
+    public static $childKey = false;
+    public $line_token;
+    public $only_notify_when_site_offline;
+    public $plugin_handle = 'mainwp-monitoring-notify-extension';
+    public $update_action = 'mainwp_monitoring_notify_update';
+    public $plugin_slug;
+    public $plugin_url;
+    public static $ver = '';
 
+    public function __construct()
+    {
 
-	public function __construct()
-	{
+        require __DIR__ . '/vendor/autoload.php';
 
-		require __DIR__ . '/vendor/autoload.php';
+        if (!function_exists('get_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        $plugin_data                         = get_plugin_data(__FILE__);
+        self::$ver                           = $plugin_data[ 'Version' ];
+        $this->plugin_url                    = plugin_dir_url(__FILE__);
+        $this->plugin_slug                   = plugin_basename(__FILE__);
+        $this->line_token                    = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
+        $this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
 
-		if (!function_exists('get_plugins')) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-		$plugin_data = get_plugin_data(__FILE__);
-		$this->ver = $plugin_data['Version'];
-		$this->plugin_url  = plugin_dir_url(__FILE__);
-		$this->plugin_slug = plugin_basename(__FILE__);
-		$this->line_token = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
-		$this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
+        add_action('admin_init', array(&$this, 'admin_init'));
+        add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [ $this, 'handle_offline_site' ]);
+        add_action('wp_ajax_' . $this->update_action, [ $this, 'update_callback' ]);
+        add_action('wp_ajax_nopriv_' . $this->update_action, [ $this, 'update_callback' ]);
+    }
 
-		add_action('admin_init', array(&$this, 'admin_init'));
-		add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [$this, 'handle_offline_site']);
-		add_action('wp_ajax_' . $this->update_action, [$this, 'update_callback']);
-		add_action('wp_ajax_nopriv_' . $this->update_action, [$this, 'update_callback']);
-	}
+    public static function get_instance()
+    {
 
-	static function get_instance()
-	{
+        if (null == self::$instance) {
+            self::$instance = new MainWP_Monitoring_Notify_Extension();
+        }
 
-		if (null == self::$instance) {
-			self::$instance = new MainWP_Monitoring_Notify_Extension();
-		}
+        return self::$instance;
+    }
 
-		return self::$instance;
-	}
+    public function handle_offline_site($site)
+    {
+        global $mainWPMonitoringNotifyExtensionActivator;
+        $wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
 
+        if (!$wp_cron_enabled) {
+            return;
+        }
 
-	public function handle_offline_site($site)
-	{
-		global $mainWPMonitoringNotifyExtensionActivator;
-		$wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
+        $msg = '';
+        if ($site->http_response_code == "200") {
+            $msg .= "\n✅ 檢查所有網站都正常運作中\n";
+        } else {
+            $code        = $site->http_response_code;
+            $code_string = MainWP\Dashboard\MainWP_Utility::get_http_codes($code);
+            if (!empty($code_string)) {
+                $code .= ' - ' . $code_string;
+            }
+            $msg .= "\n⚠️ 偵測到網站異常" . $site->name . '  🔴' . $code . "\n";
+            $msg .= "請確認並聯繫網站管理員\n";
+            $msg .= $site->url . "\n\n";
+        }
 
+        $ln = new KS\Line\LineNotify(self::$line_token);
+        $ln->send($msg);
+    }
 
-		if (!$wp_cron_enabled) return;
+    public function admin_init()
+    {
+        $page = isset($_GET[ 'page' ]) ? $_GET[ 'page' ] : '';
+        if (stripos($page, "Mainwp-Monitoring-Notify") === false) {
+            return;
+        }
 
-		$msg = '';
-		if ($site->http_response_code == "200") {
-			$msg .= "\n✅ 檢查所有網站都正常運作中\n";
-		} else {
-			$code = $site->http_response_code;
-			$code_string = MainWP\Dashboard\MainWP_Utility::get_http_codes($code);
-			if (!empty($code_string)) {
-				$code .= ' - ' . $code_string;
-			}
-			$msg .= "\n⚠️ 偵測到網站異常" . $site->name  . '  🔴' . $code  . "\n";
-			$msg .= "請確認並聯繫網站管理員\n";
-			$msg .= $site->url . "\n\n";
-		}
+        wp_enqueue_script($this->plugin_handle, $this->plugin_url . 'assets/js/main.js', array('jquery'), self::$ver);
 
-		$ln = new KS\Line\LineNotify(self::$line_token);
-		$ln->send($msg);
-	}
+        $data = [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce'    => wp_create_nonce($this->plugin_handle),
+            'action'   => $this->update_action,
+         ];
+        wp_localize_script($this->plugin_handle, 'info', $data);
+    }
 
+    public function update_callback()
+    {
+        $prefix = MainWP_Monitoring_Notify_Extension::$prefix;
+        check_ajax_referer($this->plugin_handle, 'nonce');
+        $line_token                    = sanitize_text_field($_POST[ "{$prefix}line_token" ]);
+        $only_notify_when_site_offline = sanitize_text_field($_POST[ "{$prefix}only_notify_when_site_offline" ]);
 
+        if (!empty($line_token)) {
+            update_option("{$prefix}line_token", $line_token);
+        }
+        update_option("{$prefix}only_notify_when_site_offline", $only_notify_when_site_offline);
 
-	public function admin_init()
-	{
-		$page = isset($_GET['page']) ? $_GET['page'] : '';
-		if (stripos($page, "Mainwp-Monitoring-Notify") === false) return;
+        $res = array(
+            'status'  => 'success',
+            'message' => '保存成功',
+            'data'    => $only_notify_when_site_offline,
+        );
 
-		wp_enqueue_script($this->plugin_handle, $this->plugin_url . 'assets/js/main.js', array('jquery'), $this->ver);
+        wp_send_json($res);
 
-		$data = [
-			'ajax_url' => admin_url('admin-ajax.php'),
-			'nonce' => wp_create_nonce($this->plugin_handle),
-			'action' => $this->update_action
-		];
-		wp_localize_script($this->plugin_handle, 'info', $data);
-	}
-
-	public function update_callback()
-	{
-		$prefix = MainWP_Monitoring_Notify_Extension::$prefix;
-		check_ajax_referer($this->plugin_handle, 'nonce');
-		$line_token = sanitize_text_field($_POST["{$prefix}line_token"]);
-		$only_notify_when_site_offline = sanitize_text_field($_POST["{$prefix}only_notify_when_site_offline"]);
-
-		if (!empty($line_token)) {
-			update_option("{$prefix}line_token", $line_token);
-		}
-		update_option("{$prefix}only_notify_when_site_offline", $only_notify_when_site_offline);
-
-		$res = array(
-			'status' => 'success',
-			'message' => '保存成功',
-			'data' => $only_notify_when_site_offline
-		);
-
-		wp_send_json($res);
-
-		die();
-	}
+        die();
+    }
 }
-
-
-
 
 class MainWP_Monitoring_Notify_Extension_Activator
 {
-	protected $mainwpMainActivated = false;
-	public $wp_cron_enabled = true;
-	protected $childEnabled = false;
-	protected $childKey = false;
-	protected $childFile;
-	protected $plugin_handle = 'mainwp-monitoring-notify-extension';
-	protected $product_id = 'MainWP Monitoring Notify Extension';
+    protected $mainwpMainActivated = false;
+    public $wp_cron_enabled        = true;
+    protected $childEnabled        = false;
+    protected $childKey            = false;
+    protected $childFile;
+    protected $plugin_handle = 'mainwp-monitoring-notify-extension';
+    protected $product_id    = 'MainWP Monitoring Notify Extension';
 
-	public function __construct()
-	{
-		$this->includes();
+    public function __construct()
+    {
+        $this->includes();
 
-		$this->childFile = __FILE__;
+        $this->childFile = __FILE__;
 
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
 
-		register_activation_hook(__FILE__, array($this, 'activate'));
-		register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+        add_filter('mainwp_getextensions', array(&$this, 'get_this_extension'));
+        $this->mainwpMainActivated = apply_filters('mainwp_activated_check', false);
 
-		add_filter('mainwp_getextensions', array(&$this, 'get_this_extension'));
-		$this->mainwpMainActivated = apply_filters('mainwp_activated_check', false);
+        if (false !== $this->mainwpMainActivated) {
+            $this->activate_this_plugin();
+        } else {
+            add_action('mainwp_activated', array(&$this, 'activate_this_plugin'));
+        }
+        add_action('admin_notices', array(&$this, 'mainwp_error_notice'));
+    }
 
+    public function includes()
+    {
+        include_once 'class/settings.php';
+    }
 
+    public function activate_this_plugin()
+    {
+        $this->mainwpMainActivated = apply_filters('mainwp_activated_check', $this->mainwpMainActivated);
+        $this->childEnabled        = apply_filters('mainwp_extension_enabled_check', __FILE__);
+        $this->childKey            = $this->childEnabled[ 'key' ];
+        if (function_exists('mainwp_current_user_can') && !mainwp_current_user_can('extension', 'mainwp-monitoring-notify-extension')) {
+            return;
+        }
+        new MainWP_Monitoring_Notify_Extension();
+    }
 
-		if (false !== $this->mainwpMainActivated) {
-			$this->activate_this_plugin();
-		} else {
-			add_action('mainwp_activated', array(&$this, 'activate_this_plugin'));
-		}
-		add_action('admin_notices', array(&$this, 'mainwp_error_notice'));
-	}
+    public function get_this_extension($pArray)
+    {
+        $pArray[  ] = array(
+            'plugin'           => __FILE__,
+            'api'              => $this->plugin_handle,
+            'mainwp'           => true,
+            'callback'         => array(&$this, 'settings'),
+            'apiManager'       => true,
+            'on_load_callback' => array('MainWP_Monitoring_Notify_Settings', 'on_load_page'),
+            'name'             => 'Line Notify',
+        );
 
-	public function includes()
-	{
-		include_once 'class/settings.php';
-	}
+        return $pArray;
+    }
 
-	public function activate_this_plugin()
-	{
-		$this->mainwpMainActivated = apply_filters('mainwp_activated_check', $this->mainwpMainActivated);
-		$this->childEnabled = apply_filters('mainwp_extension_enabled_check', __FILE__);
-		$this->childKey = $this->childEnabled['key'];
-		if (function_exists('mainwp_current_user_can') && !mainwp_current_user_can('extension', 'mainwp-monitoring-notify-extension')) {
-			return;
-		}
-		new MainWP_Monitoring_Notify_Extension();
-	}
+    public function settings()
+    {
+        do_action('mainwp_pageheader_extensions', __FILE__);
+        MainWP_Monitoring_Notify_Settings::render_tabs();
+        do_action('mainwp_pagefooter_extensions', __FILE__);
+    }
 
-	public function get_this_extension($pArray)
-	{
-		$pArray[] = array(
-			'plugin'     				=> __FILE__,
-			'api'        				=> $this->plugin_handle,
-			'mainwp'     				=> true,
-			'callback'   				=> array(&$this, 'settings'),
-			'apiManager' 				=> true,
-			'on_load_callback' => array('MainWP_Monitoring_Notify_Settings', 'on_load_page'),
-			'name' => 'Line Notify'
-		);
+    public function mainwp_error_notice()
+    {
+        global $current_screen;
+        if ($current_screen->parent_base == 'plugins' && $this->mainwpMainActivated == false) {
+            echo '<div class="error"><p>MainWP White Label Extension ' . __('requires <a href="https://mainwp.com/" target="_blank">MainWP Dashboard plugin</a> to be activated in order to work. Please install and activate <a href="https://mainwp.com/" target="_blank">MainWP Dashboard plugin</a> first.') . '</p></div>';
+        }
+    }
 
-		return $pArray;
-	}
+    public function get_child_key()
+    {
+        return $this->childKey;
+    }
 
-	public function settings()
-	{
-		do_action('mainwp_pageheader_extensions', __FILE__);
-		MainWP_Monitoring_Notify_Settings::render_tabs();
-		do_action('mainwp_pagefooter_extensions', __FILE__);
-	}
+    public function get_child_file()
+    {
+        return $this->childFile;
+    }
 
-	public function mainwp_error_notice()
-	{
-		global $current_screen;
-		if ($current_screen->parent_base == 'plugins' && $this->mainwpMainActivated == false) {
-			echo '<div class="error"><p>MainWP White Label Extension ' . __('requires <a href="https://mainwp.com/" target="_blank">MainWP Dashboard plugin</a> to be activated in order to work. Please install and activate <a href="https://mainwp.com/" target="_blank">MainWP Dashboard plugin</a> first.') . '</p></div>';
-		}
-	}
+    public function activate()
+    {
+        $options = array(
+            'product_id'       => $this->product_id,
+            'software_version' => MainWP_Monitoring_Notify_Extension::$ver,
+        );
+        do_action('mainwp_activate_extension', $this->plugin_handle, $options);
+    }
 
-	public function get_child_key()
-	{
-		return $this->childKey;
-	}
-
-	public function get_child_file()
-	{
-		return $this->childFile;
-	}
-
-	public function activate()
-	{
-		$options = array(
-			'product_id'       => $this->product_id,
-			'software_version' => MainWP_Monitoring_Notify_Extension::$ver,
-		);
-		do_action('mainwp_activate_extension', $this->plugin_handle, $options);
-	}
-
-	public function deactivate()
-	{
-		do_action('mainwp_deactivate_extension', $this->plugin_handle);
-	}
+    public function deactivate()
+    {
+        do_action('mainwp_deactivate_extension', $this->plugin_handle);
+    }
 }
 
 global $mainWPMonitoringNotifyExtensionActivator;
