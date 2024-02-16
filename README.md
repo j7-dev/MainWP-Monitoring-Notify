@@ -11,6 +11,11 @@
 
 ##### 如果你覺得通知太頻繁，可以設定，只有網站斷線時才通知
 
+![image](https://github.com/j7-dev/MainWP-Monitoring-Notify/assets/9213776/d438309e-0dbb-4e26-83b7-054f7be0df38)
+
+
+
+
 <br><br><br>
 
 ## 1. 如何申請 LINE Notify Token
