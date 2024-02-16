@@ -47,7 +47,7 @@
 > 也因為如此，斷線的檢查推波通知 並非準確的 5 分鐘
 
 #### 2-3. [進階] 設定準確的定時任務 - 使用 crontab
-
+>
 > 如果你的主機商允許你設定 `crontab` 那麼，你可以透過 `crontab` 實現準確的定時任務，也可以參考此 [`crontab` 教學](https://linuxhandbook.com/crontab/)
 
 > 2-3-1. 取消這個外掛的 `WP CRON`
@@ -58,7 +58,7 @@
 
 
 > 2-3-2. ssh 伺服器後輸入 `crontab -e` ，開啟 `crontab` 設定
-
+> 
 > ⚠️ 請確保你的伺服器上可以執行 php 指令
 > 
 > ⚠️ 下方的 `{{PATH}}` 請自行替換此網站的檔案路徑，例: `/var/www/html/MY_SITE`
