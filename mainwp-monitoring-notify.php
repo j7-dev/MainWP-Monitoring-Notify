@@ -4,13 +4,19 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.1.1
+ * Version: 1.2.0
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
  */
 
-class MainWP_Monitoring_Notify_Extension
+namespace J7\MainWP_Monitoring_Notify_Extension;
+
+require_once __DIR__ . '/utils/index.php';
+
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+class Bootstrap
 {
     public static $prefix   = 'mainwp_monitoring_notify_';
     public static $instance = null;
@@ -21,7 +27,8 @@ class MainWP_Monitoring_Notify_Extension
     public $update_action = 'mainwp_monitoring_notify_update';
     public $plugin_slug;
     public $plugin_url;
-    public static $ver = '';
+    public static $ver    = '';
+    const RUN_TEST_ACTION = 'run_test';
 
     public function __construct()
     {
@@ -31,24 +38,25 @@ class MainWP_Monitoring_Notify_Extension
         if (!function_exists('get_plugins')) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
-        $plugin_data                         = get_plugin_data(__FILE__);
+        $plugin_data                         = \get_plugin_data(__FILE__);
         self::$ver                           = $plugin_data[ 'Version' ];
-        $this->plugin_url                    = plugin_dir_url(__FILE__);
-        $this->plugin_slug                   = plugin_basename(__FILE__);
-        $this->line_token                    = get_option(MainWP_Monitoring_Notify_Extension::$prefix . "line_token", '');
-        $this->only_notify_when_site_offline = (bool) get_option(MainWP_Monitoring_Notify_Extension::$prefix . "only_notify_when_site_offline", '0');
+        $this->plugin_url                    = \plugin_dir_url(__FILE__);
+        $this->plugin_slug                   = \plugin_basename(__FILE__);
+        $this->line_token                    = \get_option(Bootstrap::$prefix . "line_token", '');
+        $this->only_notify_when_site_offline = (bool) \get_option(Bootstrap::$prefix . "only_notify_when_site_offline", '0');
 
-        add_action('admin_init', array(&$this, 'admin_init'));
-        add_action('mainwp_after_notice_sites_uptime_monitoring_individual', [ $this, 'handle_offline_site' ]);
-        add_action('wp_ajax_' . $this->update_action, [ $this, 'update_callback' ]);
-        add_action('wp_ajax_nopriv_' . $this->update_action, [ $this, 'update_callback' ]);
+        \add_action('admin_init', array(&$this, 'admin_init'));
+        \add_action('wp_ajax_' . $this->update_action, [ $this, 'update_callback' ]);
+        \add_action('wp_ajax_nopriv_' . $this->update_action, [ $this, 'update_callback' ]);
+        \add_action('admin_post_' . self::RUN_TEST_ACTION, [ $this, self::RUN_TEST_ACTION . '_callback' ]);
+
     }
 
     public static function get_instance()
     {
 
         if (null == self::$instance) {
-            self::$instance = new MainWP_Monitoring_Notify_Extension();
+            self::$instance = new Bootstrap();
         }
 
         return self::$instance;
@@ -57,7 +65,9 @@ class MainWP_Monitoring_Notify_Extension
     public function handle_offline_site($site)
     {
         global $mainWPMonitoringNotifyExtensionActivator;
-        $wp_cron_enabled = apply_filters(MainWP_Monitoring_Notify_Extension::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
+        $wp_cron_enabled = apply_filters(Bootstrap::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
+
+        \J7\WpToolkit\Utils::debug_log('$wp_cron_enabled: ' . $wp_cron_enabled ? 'true' : 'false');
 
         if (!$wp_cron_enabled) {
             return;
@@ -68,7 +78,7 @@ class MainWP_Monitoring_Notify_Extension
             $msg .= "\n✅ 檢查所有網站都正常運作中\n";
         } else {
             $code        = $site->http_response_code;
-            $code_string = MainWP\Dashboard\MainWP_Utility::get_http_codes($code);
+            $code_string = \MainWP\Dashboard\MainWP_Utility::get_http_codes($code);
             if (!empty($code_string)) {
                 $code .= ' - ' . $code_string;
             }
@@ -77,7 +87,7 @@ class MainWP_Monitoring_Notify_Extension
             $msg .= $site->url . "\n\n";
         }
 
-        $ln = new KS\Line\LineNotify(self::$line_token);
+        $ln = new \KS\Line\LineNotify(self::$line_token);
         $ln->send($msg);
     }
 
@@ -100,7 +110,7 @@ class MainWP_Monitoring_Notify_Extension
 
     public function update_callback()
     {
-        $prefix = MainWP_Monitoring_Notify_Extension::$prefix;
+        $prefix = Bootstrap::$prefix;
         check_ajax_referer($this->plugin_handle, 'nonce');
         $line_token                    = sanitize_text_field($_POST[ "{$prefix}line_token" ]);
         $only_notify_when_site_offline = sanitize_text_field($_POST[ "{$prefix}only_notify_when_site_offline" ]);
@@ -120,9 +130,14 @@ class MainWP_Monitoring_Notify_Extension
 
         die();
     }
+
+    public static function run_test_callback()
+    {
+        Utils\Functions::exec_crontab_task();
+    }
 }
 
-class MainWP_Monitoring_Notify_Extension_Activator
+class Activator
 {
     protected $mainwpMainActivated = false;
     public $wp_cron_enabled        = true;
@@ -165,7 +180,23 @@ class MainWP_Monitoring_Notify_Extension_Activator
         if (function_exists('mainwp_current_user_can') && !mainwp_current_user_can('extension', 'mainwp-monitoring-notify-extension')) {
             return;
         }
-        new MainWP_Monitoring_Notify_Extension();
+        new Bootstrap();
+
+        $this->plugin_update_checker();
+    }
+
+    /**
+     * wp plugin 更新檢查 update checker
+     */
+    public function plugin_update_checker(): void
+    {
+        $updateChecker = PucFactory::buildUpdateChecker(
+            Utils::GITHUB_REPO,
+            __FILE__,
+            Utils::KEBAB
+        );
+        $updateChecker->setBranch('master');
+        $updateChecker->getVcsApi()->enableReleaseAssets();
     }
 
     public function get_this_extension($pArray)
@@ -176,7 +207,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
             'mainwp'           => true,
             'callback'         => array(&$this, 'settings'),
             'apiManager'       => true,
-            'on_load_callback' => array('MainWP_Monitoring_Notify_Settings', 'on_load_page'),
+            'on_load_callback' => array(__NAMESPACE__ . '\Settings', 'on_load_page'),
             'name'             => 'Line Notify',
         );
 
@@ -186,7 +217,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
     public function settings()
     {
         do_action('mainwp_pageheader_extensions', __FILE__);
-        MainWP_Monitoring_Notify_Settings::render_tabs();
+        Settings::render_tabs();
         do_action('mainwp_pagefooter_extensions', __FILE__);
     }
 
@@ -212,7 +243,7 @@ class MainWP_Monitoring_Notify_Extension_Activator
     {
         $options = array(
             'product_id'       => $this->product_id,
-            'software_version' => MainWP_Monitoring_Notify_Extension::$ver,
+            'software_version' => Bootstrap::$ver,
         );
         do_action('mainwp_activate_extension', $this->plugin_handle, $options);
     }
@@ -224,4 +255,4 @@ class MainWP_Monitoring_Notify_Extension_Activator
 }
 
 global $mainWPMonitoringNotifyExtensionActivator;
-$mainWPMonitoringNotifyExtensionActivator = new MainWP_Monitoring_Notify_Extension_Activator();
+$mainWPMonitoringNotifyExtensionActivator = new Activator();

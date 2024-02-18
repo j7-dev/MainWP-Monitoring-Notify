@@ -1,10 +1,10 @@
 <?php
-class MainWP_Monitoring_Notify_Settings
-{
-    public function __construct()
-    {
-    }
+declare (strict_types = 1);
 
+namespace J7\MainWP_Monitoring_Notify_Extension;
+
+class Settings
+{
     public static function render_tabs()
     {
         $tabs = [
@@ -39,7 +39,7 @@ class MainWP_Monitoring_Notify_Settings
             $active = $key === 'monitoring-notify-settings' ? 'active' : '';
             ?>
 	<div class="ui tab segment <?=$active?>" data-tab="<?=$key?>">
-		<?php call_user_func([ 'MainWP_Monitoring_Notify_Settings', $tab[ 'callback' ] ])?>
+		<?php call_user_func([ __NAMESPACE__ . '\Settings', $tab[ 'callback' ] ])?>
 	</div>
 	<?php endforeach;?>
 <script>
@@ -75,7 +75,7 @@ class MainWP_Monitoring_Notify_Settings
              ],
             [
                 'key'   => '版本號',
-                'value' => MainWP_Monitoring_Notify_Extension::$ver,
+                'value' => Bootstrap::$ver,
              ],
             [
                 'key'   => '開發者',
@@ -114,7 +114,7 @@ class MainWP_Monitoring_Notify_Settings
 
     public static function render_crontab()
     {
-        $base_url             = MainWP_Monitoring_Notify_Extension::get_instance()->plugin_url;
+        $base_url             = Bootstrap::get_instance()->plugin_url;
         $monitoring_sites_url = add_query_arg(array(
             'page' => 'MonitoringSites',
         ), admin_url('admin.php'));
@@ -183,20 +183,41 @@ class MainWP_Monitoring_Notify_Settings
 			<div class="ui divider"></div>
 			<button id="monitoring_notify_submit_btn"
 				class="ui big green button"><?php _e('Save Settings', 'mainwp-monitoring-notify-extension');?></button>
+			<button type="button" id="monitoring_notify_run_test"
+				class="ui big green button"><?php _e('Run Test', 'mainwp-monitoring-notify-extension');?></button>
 		</div>
 		<div id="response_msg" style="margin-top:2rem"></div>
-
 	</form>
 </div>
+
+<script>
+(function($) {
+	$('#monitoring_notify_run_test').click(function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		$('#response_msg').html(
+			'<div class="ui active inline loader"></div><span style="margin-left:1rem;">正在執行檢查...，如果你的網站很多，請多給它一點時間🙏，請求已經發出，關閉視窗也沒關係</span>'
+		);
+		const data = {
+			'action': 'run_test',
+		};
+		$.post("<?=admin_url('admin-post.php')?>", data, function(response) {
+			alert('已執行檢查，並發送 LINE 通知');
+			$('#response_msg').html('');
+		});
+	})
+
+})(jQuery)
+</script>
 <?php
 }
 
     public static function render_fields()
     {
-        $prefix                        = MainWP_Monitoring_Notify_Extension::$prefix;
-        $line_token                    = MainWP_Monitoring_Notify_Extension::get_instance()->line_token;
-        $only_notify_when_site_offline = MainWP_Monitoring_Notify_Extension::get_instance()->only_notify_when_site_offline;
-        $base_url                      = MainWP_Monitoring_Notify_Extension::get_instance()->plugin_url;
+        $prefix                        = Bootstrap::$prefix;
+        $line_token                    = Bootstrap::get_instance()->line_token;
+        $only_notify_when_site_offline = Bootstrap::get_instance()->only_notify_when_site_offline;
+        $base_url                      = Bootstrap::get_instance()->plugin_url;
         $helpers                       = [
             [
                 'content' => '請先前往 <a href="https://notify-bot.line.me/zh_TW/" target="_blank">LINE Notify</a> 並登入你的 LINE',
@@ -219,7 +240,7 @@ class MainWP_Monitoring_Notify_Settings
             'key'           => 'tutorial',
             'label'         => '<i class="info circle icon"></i> 教學',
             'title'         => '如何申請 LINE Notify Token',
-            'content'       => [ 'MainWP_Monitoring_Notify_Settings', 'renderList' ],
+            'content'       => [ __NAMESPACE__ . '\Settings', 'renderList' ],
             'content_props' => $helpers,
          ];
 
@@ -336,7 +357,6 @@ class MainWP_Monitoring_Notify_Settings
 
 <?php
 }
-
     public static function on_load_page()
     {
     }
