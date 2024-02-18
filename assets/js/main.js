@@ -23,8 +23,21 @@
       mainwp_monitoring_notify_line_token: $(
         "#mainwp_monitoring_notify_line_token"
       ).val(),
+      mainwp_monitoring_notify_interval_in_minute: $(
+        "#mainwp_monitoring_notify_interval_in_minute"
+      ).val(),
       mainwp_monitoring_notify_only_notify_when_site_offline: $(
         "#mainwp_monitoring_notify_only_notify_when_site_offline"
+      ).is(":checked")
+        ? 1
+        : 0,
+      mainwp_monitoring_notify_hide_healthy_sites: $(
+        "#mainwp_monitoring_notify_hide_healthy_sites"
+      ).is(":checked")
+        ? 1
+        : 0,
+      mainwp_monitoring_notify_show_system_info: $(
+        "#mainwp_monitoring_notify_show_system_info"
       ).is(":checked")
         ? 1
         : 0,

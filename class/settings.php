@@ -75,7 +75,7 @@ class Settings
              ],
             [
                 'key'   => '版本號',
-                'value' => Bootstrap::$ver,
+                'value' => Utils::get_plugin_ver(),
              ],
             [
                 'key'   => '開發者',
@@ -114,7 +114,7 @@ class Settings
 
     public static function render_crontab()
     {
-        $base_url             = Bootstrap::get_instance()->plugin_url;
+        $base_url             = Utils::get_plugin_url();
         $monitoring_sites_url = add_query_arg(array(
             'page' => 'MonitoringSites',
         ), admin_url('admin.php'));
@@ -188,10 +188,10 @@ class Settings
 			<div class="ui divider"></div>
 			<button id="monitoring_notify_submit_btn"
 				class="ui big green button"><?php _e('Save Settings', 'mainwp-monitoring-notify-extension');?></button>
-			<button type="button" id="monitoring_notify_run_test"
-				class="ui big green button"><?php _e('Run Test', 'mainwp-monitoring-notify-extension');?></button>
+			<button type="button" id="monitoring_notify_run_test" class="ui big button"
+				style="margin-left:1rem !important;"><?php _e('Run Test', 'mainwp-monitoring-notify-extension');?></button>
 		</div>
-		<div id="response_msg" style="margin-top:2rem"></div>
+		<div id="response_msg" style="margin-top:2rem;"></div>
 	</form>
 </div>
 
@@ -219,10 +219,12 @@ class Settings
 
     public static function render_fields()
     {
-        $prefix                        = Bootstrap::$prefix;
-        $line_token                    = Bootstrap::get_instance()->line_token;
-        $only_notify_when_site_offline = Bootstrap::get_instance()->only_notify_when_site_offline;
-        $base_url                      = Bootstrap::get_instance()->plugin_url;
+        $line_token                    = \get_option(Bootstrap::LINE_TOKEN_FIELD_NAME, '');
+        $only_notify_when_site_offline = (bool) \get_option(Bootstrap::ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME, '0');
+        $interval_in_minute            = \get_option(Bootstrap::INTERVAL_IN_MINUTE_FIELD_NAME, '5');
+        $hide_healthy_sites            = (bool) \get_option(Bootstrap::HIDE_HEALTHY_SITES_FIELD_NAME, '0');
+        $show_system_info              = (bool) \get_option(Bootstrap::SHOW_SYSTEM_INFO_FIELD_NAME, '0');
+        $base_url                      = Utils::get_plugin_url();
         $helpers                       = [
             [
                 'content' => '請先前往 <a href="https://notify-bot.line.me/zh_TW/" target="_blank">LINE Notify</a> 並登入你的 LINE',
@@ -252,23 +254,54 @@ class Settings
         ?>
 <div class="ui grid field">
 	<label
-		class="six wide column middle aligned"><?php _e('Line Notify Token', 'mainwp-monitoring-notify-extension');?><span
+		class="six wide column middle aligned"><?php \_e('Line Notify Token', 'mainwp-monitoring-notify-extension');?><span
 			style="margin-right:1rem;"></span><?php self::renderModal($modal_props)?></label>
 	<div class="ten wide column">
-		<input type="text" name="<?="{$prefix}line_token"?>" id="<?="{$prefix}line_token"?>"
-			value="<?=$line_token?>" />
+		<input type="text" name="<?=Bootstrap::LINE_TOKEN_FIELD_NAME?>"
+			id="<?=Bootstrap::LINE_TOKEN_FIELD_NAME?>" value="<?=$line_token?>" />
 	</div>
 </div>
+
 <div class="ui grid field">
-	<label class="six wide column middle aligned"
-		data-tooltip="<?php esc_attr_e('Check this option to notify when site is offline only', 'mainwp-monitoring-notify-extension');?>"
-		data-inverted=""
-		data-position="top left"><?php _e('Only Notify When Site Offline', 'mainwp-monitoring-notify-extension');?></label>
+	<label
+		class="six wide column middle aligned"><?php \_e('多久通知一次(分鐘)', 'mainwp-monitoring-notify-extension');?><span
+			style="margin-right:1rem;"></span></label>
 	<div class="ten wide column">
-		<input type="checkbox" name="<?="{$prefix}only_notify_when_site_offline"?>"
-			id="<?="{$prefix}only_notify_when_site_offline"?>" style="position: relative;top: 7px;"
-			<?php checked($only_notify_when_site_offline);?> /> <span>check this if you don't want to
-			receive every notification</span>
+		<input type="number" min="1" name="<?=Bootstrap::INTERVAL_IN_MINUTE_FIELD_NAME?>"
+			id="<?=Bootstrap::INTERVAL_IN_MINUTE_FIELD_NAME?>" value="<?=$interval_in_minute?>" />
+	</div>
+</div>
+
+<div class="ui grid field">
+	<label class="six wide column middle aligned" data-inverted=""
+		data-position="top left"><?php \_e('只有網站斷線時才發通知', 'mainwp-monitoring-notify-extension');?></label>
+	<div class="ten wide column">
+		<input type="checkbox" name="<?=Bootstrap::ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME?>"
+			id="<?=Bootstrap::ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME?>"
+			style="position: relative;top: 7px;" <?php \checked($only_notify_when_site_offline);?> />
+	</div>
+</div>
+
+<div class="ui grid field">
+	<label class="six wide column middle aligned" data-inverted=""
+		data-position="top left"><?php _e('隱藏狀態正常的網站', 'mainwp-monitoring-notify-extension');?></label>
+	<div class="ten wide column">
+		<input type="checkbox" name="<?=Bootstrap::HIDE_HEALTHY_SITES_FIELD_NAME?>"
+			id="<?=Bootstrap::HIDE_HEALTHY_SITES_FIELD_NAME?>" style="position: relative;top: 7px;"
+			<?php checked($hide_healthy_sites);?> /> <span>如果網站的 <code>http code</code> 是
+			<code>2XX</code> 或 <code>3XX</code> 就不會通知</span>
+	</div>
+</div>
+
+<div class="ui grid field">
+	<label class="six wide column middle aligned" data-inverted=""
+		data-position="top left"><?php _e('顯示系統資訊', 'mainwp-monitoring-notify-extension');?></label>
+	<div class="ten wide column">
+		<input type="checkbox" name="<?=Bootstrap::SHOW_SYSTEM_INFO_FIELD_NAME?>"
+			id="<?=Bootstrap::SHOW_SYSTEM_INFO_FIELD_NAME?>" style="position: relative;top: 7px;"
+			<?php checked($show_system_info);?> /> <span>顯示你的 MainWP Dashboard 伺服器的 <code>cpu</code>,
+			<code>ram</code>, <code>average load</code>, <code>nginx</code>, <code>MySQL</code>
+			的資訊和狀態</span>
 	</div>
 </div>
 

@@ -4,7 +4,7 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.2.2
+ * Version: 1.3.0
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
@@ -18,16 +18,17 @@ use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 class Bootstrap
 {
-    public static $prefix   = 'mainwp_monitoring_notify_';
     public static $instance = null;
     public static $childKey = false;
-    public $line_token;
-    public $only_notify_when_site_offline;
-    public $plugin_handle = 'mainwp-monitoring-notify-extension';
-    public $update_action = 'mainwp_monitoring_notify_update';
-    public $plugin_slug;
-    public $plugin_url;
-    public static $ver    = '';
+    public $plugin_handle   = 'mainwp-monitoring-notify-extension';
+    public $update_action   = 'mainwp_monitoring_notify_update';
+
+    const LINE_TOKEN_FIELD_NAME                    = Utils::SNAKE . '_line_token';
+    const INTERVAL_IN_MINUTE_FIELD_NAME            = Utils::SNAKE . '_interval_in_minute';
+    const ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME = Utils::SNAKE . '_only_notify_when_site_offline';
+    const HIDE_HEALTHY_SITES_FIELD_NAME            = Utils::SNAKE . '_hide_healthy_sites';
+    const SHOW_SYSTEM_INFO_FIELD_NAME              = Utils::SNAKE . '_show_system_info';
+
     const RUN_TEST_ACTION = 'run_test';
     const CRON_ACTION     = 'mainwp_monitoring_notify_cron';
 
@@ -39,12 +40,6 @@ class Bootstrap
         if (!function_exists('get_plugins')) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
-        $plugin_data                         = \get_plugin_data(__FILE__);
-        self::$ver                           = $plugin_data[ 'Version' ];
-        $this->plugin_url                    = \plugin_dir_url(__FILE__);
-        $this->plugin_slug                   = \plugin_basename(__FILE__);
-        $this->line_token                    = \get_option(Bootstrap::$prefix . "line_token", '');
-        $this->only_notify_when_site_offline = (bool) \get_option(Bootstrap::$prefix . "only_notify_when_site_offline", '0');
 
         \add_action('admin_init', array(&$this, 'admin_init'));
         \add_action('wp_ajax_' . $this->update_action, [ $this, 'update_callback' ]);
@@ -55,7 +50,7 @@ class Bootstrap
             wp_schedule_event(time(), 'every_five_minutes', self::CRON_ACTION);
         }
         \add_action(self::CRON_ACTION, [ $this, self::CRON_ACTION . '_callback' ]);
-        \add_filter('cron_schedules', [ $this, 'my_custom_cron_schedule' ]);
+        \add_filter('cron_schedules', [ $this, 'notify_cron_schedule' ]);
     }
 
     public static function get_instance()
@@ -71,9 +66,7 @@ class Bootstrap
     public function handle_offline_site($site)
     {
         global $mainWPMonitoringNotifyExtensionActivator;
-        $wp_cron_enabled = apply_filters(Bootstrap::$prefix . 'wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
-
-        \J7\WpToolkit\Utils::debug_log('$wp_cron_enabled: ' . $wp_cron_enabled ? 'true' : 'false');
+        $wp_cron_enabled = apply_filters(Utils::SNAKE . '_wp_cron_enabled', $mainWPMonitoringNotifyExtensionActivator->wp_cron_enabled);
 
         if (!$wp_cron_enabled) {
             return;
@@ -92,8 +85,9 @@ class Bootstrap
             $msg .= "請確認並聯繫網站管理員\n";
             $msg .= $site->url . "\n\n";
         }
+        $line_token = \get_option(Bootstrap::LINE_TOKEN_FIELD_NAME, '');
 
-        $ln = new \KS\Line\LineNotify(self::$line_token);
+        $ln = new \KS\Line\LineNotify($line_token);
         $ln->send($msg);
     }
 
@@ -104,7 +98,7 @@ class Bootstrap
             return;
         }
 
-        wp_enqueue_script($this->plugin_handle, $this->plugin_url . 'assets/js/main.js', array('jquery'), self::$ver);
+        wp_enqueue_script($this->plugin_handle, Utils::get_plugin_url() . '/assets/js/main.js', array('jquery'), Utils::get_plugin_ver());
 
         $data = [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -116,32 +110,46 @@ class Bootstrap
 
     public function update_callback()
     {
-        $prefix = Bootstrap::$prefix;
-        check_ajax_referer($this->plugin_handle, 'nonce');
-        $line_token                    = sanitize_text_field($_POST[ "{$prefix}line_token" ]);
-        $only_notify_when_site_offline = sanitize_text_field($_POST[ "{$prefix}only_notify_when_site_offline" ]);
+        \check_ajax_referer($this->plugin_handle, 'nonce');
+        $line_token                    = \sanitize_text_field($_POST[ self::LINE_TOKEN_FIELD_NAME ]);
+        $interval_in_minute            = \sanitize_text_field($_POST[ self::INTERVAL_IN_MINUTE_FIELD_NAME ]);
+        $only_notify_when_site_offline = \sanitize_text_field($_POST[ self::ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME ]);
+        $hide_healthy_sites            = \sanitize_text_field($_POST[ self::HIDE_HEALTHY_SITES_FIELD_NAME ]);
+        $show_system_info              = \sanitize_text_field($_POST[ self::SHOW_SYSTEM_INFO_FIELD_NAME ]);
 
         if (!empty($line_token)) {
-            update_option("{$prefix}line_token", $line_token);
+            \update_option(self::LINE_TOKEN_FIELD_NAME, $line_token);
         }
-        update_option("{$prefix}only_notify_when_site_offline", $only_notify_when_site_offline);
+        if ($interval_in_minute > 0) {
+            \update_option(self::INTERVAL_IN_MINUTE_FIELD_NAME, $interval_in_minute);
+        }
+        \update_option(self::ONLY_NOTIFY_WHEN_SITE_OFFLINE_FIELD_NAME, $only_notify_when_site_offline);
+        \update_option(self::HIDE_HEALTHY_SITES_FIELD_NAME, $hide_healthy_sites);
+        \update_option(self::SHOW_SYSTEM_INFO_FIELD_NAME, $show_system_info);
 
         $res = array(
             'status'  => 'success',
             'message' => '保存成功',
-            'data'    => $only_notify_when_site_offline,
+            'data'    => [
+                'line_token'                    => $line_token,
+                'interval_in_minute'            => $interval_in_minute,
+                'only_notify_when_site_offline' => $only_notify_when_site_offline,
+                'hide_healthy_sites'            => $hide_healthy_sites,
+                'show_system_info'              => $show_system_info,
+             ],
         );
 
-        wp_send_json($res);
+        \wp_send_json($res);
 
         die();
     }
 
-    public function my_custom_cron_schedule($schedules)
+    public function notify_cron_schedule($schedules)
     {
-        $schedules[ 'every_five_minutes' ] = array(
-            'interval' => 300, // 時間以秒為單位，300秒等於5分鐘
-            'display' => esc_html__('Every Five Minutes'),
+        $interval_in_minute                               = \get_option(self::INTERVAL_IN_MINUTE_FIELD_NAME, 5);
+        $schedules[ self::INTERVAL_IN_MINUTE_FIELD_NAME ] = array(
+            'interval' => $interval_in_minute * 60, // 時間以秒為單位，300秒等於5分鐘
+            'display' => Utils::APP_NAME . '每 ' . $interval_in_minute . ' 分鐘檢查一次',
         );
 
         return $schedules;
@@ -263,7 +271,7 @@ class Activator
     {
         $options = array(
             'product_id'       => $this->product_id,
-            'software_version' => Bootstrap::$ver,
+            'software_version' => Utils::get_plugin_ver(),
         );
         do_action('mainwp_activate_extension', $this->plugin_handle, $options);
     }
