@@ -4,7 +4,7 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:

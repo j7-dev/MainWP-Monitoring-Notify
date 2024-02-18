@@ -11,13 +11,24 @@ abstract class Functions
 
     public static function get_http_status_code(string $url)
     {
-        $headers     = \get_headers($url);
-        $status_line = $headers[ 0 ] ?? '';
-        \preg_match('/\d{3}/', $status_line, $match);
-        $status_code = $match[ 0 ] ?? '';
+        // 初始化cURL會話
+        $curl = curl_init($url);
 
+        // 設置cURL選項
+        curl_setopt($curl, CURLOPT_NOBODY, true); // 不下載body內容
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); // 返回結果為字符串，而非直接輸出
+        curl_setopt($curl, CURLOPT_HEADER, true); // 啟用時會將頭文件的資訊作為數據流輸出
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // 跟隨重定向
+
+        // 執行cURL請求
+        curl_exec($curl);
+
+        // 獲取HTTP狀態碼
+        $httpStatusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+        // 等待 0.1 秒
         usleep(100000);
-        return $status_code;
+        return (string) $httpStatusCode;
     }
 
     public static function get_sites()
