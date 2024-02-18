@@ -5,6 +5,13 @@
 
 <br><br><br>
 
+### 預覽
+
+![image](https://github.com/j7-dev/MainWP-Monitoring-Notify/assets/9213776/1e115794-eba1-40c4-8198-06f3eaf577f9)
+
+
+<br><br><br>
+
 ## ⚡ 主要功能
 
 ##### 使用 LINE NOTIFY 通知
