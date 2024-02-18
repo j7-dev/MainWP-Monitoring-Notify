@@ -125,10 +125,22 @@ class Settings
              ],
             [
                 'q' => '運作原理是什麼?',
-                'a' => '是使用 <code>WP CRON</code> 搭配 <code>MainWP</code> 本身的 hook 做成<br /><br />
+                'a' => '使用 <code>WP CRON</code> hook 做成<br /><br />
 				⚠️ <code>WP CRON</code> 必須是<b style="color: var(--red-color)">有人造訪網站時才會觸發</b>，如果您的網站流量本身並不高，推薦使用 主機本身提供的 <code>crontab</code> 來實現，詳細可參考 <a href="https://kb.mainwp.com/disable-wp-cron/" target="_blank">官方文章</a> 或 <a href="https://studiofreya.com/2016/01/10/how-to-trigger-wp-cron-from-crontab-in-wordpress/" target="_blank">這篇文章</a><br /><br />
-				也因為如此，斷線的檢查推波通知 <b style="color: var(--red-color)">並非準確的 5 分鐘</b>
+				也因為如此，斷線的檢查推波通知 <b style="color: var(--red-color)">並非準確的 5 分鐘</b><br /><br />
+				每個站取得狀態後會暫停 0.1 秒，避免過多站台造成伺服器負擔<br />
 				',
+             ],
+            [
+                'q' => '為什麼通知的網站都是 <無法取得 http 狀態碼> ?',
+                'a' => "
+							1. PHP配置：<code>get_headers</code>函數依賴於<code>allow_url_fopen</code>配置指令。如果<code>php.ini</code>文件中的<code>allow_url_fopen</code>被設置為<code>off</code>，那麼嘗試使用<code>get_headers</code>函數訪問URL時將會失敗。你可以通過<code>ini_get('allow_url_fopen')</code>來檢查這個配置項的當前值。<br /><br />
+2. 伺服器限制：某些託管環境或伺服器可能出於安全或性能的考慮，限制了對外部URL的訪問。這可能會阻止<code>get_headers</code>函數正常工作，特別是當你嘗試獲取非本地資源的頭信息時。<br /><br />
+3. 網絡問題：如果伺服器無法訪問指定的URL（例如，因為網絡配置錯誤、DNS問題或目標伺服器不可達），<code>get_headers</code>也會失敗。<br /><br />
+4. 安全軟件：伺服器上運行的防火牆或安全軟件可能會阻止對外部HTTP請求的執行，包括使用<code>get_headers</code>函數的請求。<br /><br />
+5. PHP版本差異：雖然<code>get_headers</code>函數在不同的PHP版本中普遍可用，但不同版本的PHP可能在處理某些特定情況時存在差異，尤其是與SSL/TLS相關的處理上。確保你的PHP環境是最新的，或至少是被廣泛支持的版本，可以幫助避免這類問題。<br /><br />
+如果你在特定伺服器上遇到<code>get_headers</code>函數無法使用的情況，首先檢查<code>allow_url_fopen</code>的配置，然後考慮上述可能的原因。如果問題仍然存在，探索替代方案，如使用cURL庫來獲取頭信息，這通常是一個更靈活且受到廣泛支持的方法。<br /><br />
+							",
              ],
             [
                 'q' => '[進階] 設定準確的定時任務 - 使用 crontab',

@@ -4,7 +4,7 @@
  * Plugin Name: MainWP Monitoring Notify
  * Plugin URI: https://mainwp.com
  * Description: The MainWP Monitoring Notify extension allows you to send notifications via Line Notify when your site goes offline.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: J7
  * Author URI: https://github.com/j7-dev
  * Documentation URI:
@@ -29,6 +29,7 @@ class Bootstrap
     public $plugin_url;
     public static $ver    = '';
     const RUN_TEST_ACTION = 'run_test';
+    const CRON_ACTION     = 'mainwp_monitoring_notify_cron';
 
     public function __construct()
     {
@@ -50,6 +51,11 @@ class Bootstrap
         \add_action('wp_ajax_nopriv_' . $this->update_action, [ $this, 'update_callback' ]);
         \add_action('admin_post_' . self::RUN_TEST_ACTION, [ $this, self::RUN_TEST_ACTION . '_callback' ]);
 
+        if (!wp_next_scheduled(self::CRON_ACTION)) {
+            wp_schedule_event(time(), 'every_five_minutes', self::CRON_ACTION);
+        }
+        \add_action(self::CRON_ACTION, [ $this, self::CRON_ACTION . '_callback' ]);
+        \add_filter('cron_schedules', [ $this, 'my_custom_cron_schedule' ]);
     }
 
     public static function get_instance()
@@ -131,6 +137,20 @@ class Bootstrap
         die();
     }
 
+    public function my_custom_cron_schedule($schedules)
+    {
+        $schedules[ 'every_five_minutes' ] = array(
+            'interval' => 300, // 時間以秒為單位，300秒等於5分鐘
+            'display' => esc_html__('Every Five Minutes'),
+        );
+
+        return $schedules;
+    }
+
+    public function mainwp_monitoring_notify_cron_callback()
+    {
+        Utils\Functions::exec_crontab_task();
+    }
     public static function run_test_callback()
     {
         Utils\Functions::exec_crontab_task();

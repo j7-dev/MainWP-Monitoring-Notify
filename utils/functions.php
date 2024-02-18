@@ -15,6 +15,8 @@ abstract class Functions
         $status_line = $headers[ 0 ] ?? '';
         \preg_match('/\d{3}/', $status_line, $match);
         $status_code = $match[ 0 ] ?? '';
+
+        usleep(100000);
         return $status_code;
     }
 
